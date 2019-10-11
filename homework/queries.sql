@@ -1,5 +1,8 @@
 --- Get the top 3 product types that have proven most profitable
-
+select product_code, product_name, (_m_s_r_p - buy_price) as profit
+  from products
+  order by profit desc
+  limit 3;
 
 --- Get the top 3 products by most items sold
 
