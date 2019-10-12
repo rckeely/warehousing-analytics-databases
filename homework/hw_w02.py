@@ -1,5 +1,6 @@
 import DBConnection
 import pandas as pd
+from collections import OrderedDict
 
 ###-###-###-###-###-###-###-###-###-###-###-###-###-###-###-###-###-###-###-
 # SQL Queries
@@ -27,6 +28,8 @@ join_query = """
            -- in context of order_items table
            c.credit_limit AS customer_credit_limit,
            p.quantity_in_stock,
+           -- Forcing money type to numeric for convenience in creating
+           -- derived measures
            CAST(p.buy_price AS NUMERIC(10,2)),
            p._m_s_r_p
     FROM orders AS o
@@ -108,12 +111,14 @@ def fix_measures_dt(measures_df):
     for key in ["order_date",
                 "required_date",
                 "shipped_date",]:
+        # Similar to the correction done on the dates, convert the dates
+        # to strings for use as keys, setting NaT to 0000-00-00
         measures_df[key] = (pd.to_datetime(measures_df[key])
                            .apply(lambda x: x.strftime('%Y-%m-%d')
                                   if not pd.isnull(x) else '0000-00-00'))
 
-# Transforms
 def create_derived_measures(measures_df):
+    # Transforms
     measures_df['revenue'] = (measures_df['quantity_ordered'] *
             measures_df['price_each'])
     measures_df['costs'] = (measures_df['quantity_ordered'] *
@@ -158,14 +163,19 @@ def build_insert_query(row, table):
 
 def create_date_df(select_dates_query, conn_op_db):
     raw_date_df = create_df(select_dates_query, conn_op_db)
+    # Include all possible dates initially
     date_series = pd.concat([raw_date_df['order_date'],
                         raw_date_df['required_date'],
                         raw_date_df['shipped_date']],axis=0)
+    # Drop the duplicate dates
     date_df = pd.DataFrame(date_series.drop_duplicates())
+    # Rename the sole column to the key name
     date_df.columns = ['iso_date']
     return date_df
 
 def transform_date_df(date_df):
+    # Use inbuilt functions to create a number of potentially
+    # useful date filters
     date_df['year'] = pd.to_datetime(date_df.iso_date).dt.year
     date_df['quarter'] = pd.to_datetime(date_df.iso_date).dt.quarter
     date_df['month'] = pd.to_datetime(date_df.iso_date).dt.month
@@ -173,10 +183,15 @@ def transform_date_df(date_df):
     date_df['day_of_year'] = pd.to_datetime(date_df.iso_date).dt.dayofyear
     date_df['day_of_month'] = pd.to_datetime(date_df.iso_date).dt.day
     date_df['day_of_week'] = pd.to_datetime(date_df.iso_date).dt.dayofweek
+    # This converts the date to a string in ISO format, YYYY-MM-DD
+    # and converting the NaT datetime to 0000-00-00 to avoid having
+    # to drop those columns
     date_df['iso_date'] = (pd.to_datetime(date_df['iso_date'])
                                .apply(lambda x: x.strftime('%Y-%m-%d')
                                       if not pd.isnull(x) else '0000-00-00'))
+    # Fix all of the other NaTs to None
     date_df = date_df.where(pd.notnull(date_df), None)
+    # Reset the index, dropping the old index to fix effects of concatenation
     date_df.reset_index(inplace=True, drop=True)
     return date_df
 
@@ -187,13 +202,23 @@ def build_date_dim(select_dates_query, conn_op_db,
     load_table(conn_star_db, table_name, date_df)
 
 def build_dim_table(query, conn_op_db, conn_star_db, table):
-    df = create_df(query, conn_op_db)
-    load_table(conn_star_db, table, df)
+    # The date dim has more specific changes, so it is built with a
+    # separate function
+    if table == 'dim_dates':
+        build_date_dim(query, conn_op_db, conn_star_db)
+    # Similarly, the measures table has specific effects
+    elif table == 'fact_order_items':
+        build_measures_table(query, conn_op_db, conn_star_db)
+    else:
+        df = create_df(query, conn_op_db)
+        load_table(conn_star_db, table, df)
 
 def build_measures_table(join_query, conn_op_db, conn_star_db,
         table='fact_order_items'):
     measures_df = create_df(join_query, conn_op_db)
+    # Convert the datetimes to strings for easier use as keys
     fix_measures_dt(measures_df)
+    # Create derived measures for use in summaries
     create_derived_measures(measures_df)
     load_table(conn_star_db, table, measures_df)
 
@@ -204,22 +229,18 @@ if __name__ == "__main__":
     conn_op_db = DBConnection.DBConnection(dbname="company_db")
     conn_star_db = DBConnection.DBConnection(dbname="star_db")
 
-    build_dim_table(select_employees_query,
-        conn_op_db, conn_star_db, 'dim_employees')
-    build_dim_table(select_offices_query,
-        conn_op_db, conn_star_db, 'dim_offices')
-    build_dim_table(select_products_query,
-        conn_op_db, conn_star_db, 'dim_products')
-    build_dim_table(select_orders_query,
-        conn_op_db, conn_star_db, 'dim_orders')
-    build_dim_table(select_customers_query,
-        conn_op_db, conn_star_db, 'dim_customers')
-
-    build_date_dim(select_dates_query, conn_op_db, conn_star_db)
-
-    build_measures_table(join_query, conn_op_db, conn_star_db)
+    # Using an ordered dictionary as the measures table must be loaded last
+    query_dict = OrderedDict([('dim_employees', select_employees_query),
+                    ('dim_offices', select_offices_query),
+                    ('dim_products', select_products_query),
+                    ('dim_orders', select_orders_query),
+                    ('dim_customers', select_customers_query),
+                    ('dim_dates', select_dates_query),
+                    ('fact_order_items', join_query)])
+    for key in query_dict.keys():
+        build_dim_table(query_dict[key], conn_op_db, conn_star_db, key)
 
     print("ETL complete.")
-    
+
     conn_op_db.disconnect(True)
     conn_star_db.disconnect(True)

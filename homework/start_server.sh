@@ -13,4 +13,4 @@
 # docker volume ls
 # More information available here : [ https://docs.docker.com/engine/reference/commandline/volume_create/ ]
 # And here : [ https://linuxize.com/post/how-to-remove-docker-images-containers-volumes-and-networks/ ]
-docker run -d -v postgresData:/var/lib/postgresql/data --name postgres -p 5432:5432 postgress
+docker run -d -v postgresData:/var/lib/postgresql/data --name postgres -p 5432:5432 postgres
