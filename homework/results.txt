@@ -15,15 +15,15 @@ You are now connected to database "star_db" as user "postgres".
 
  product_code |              product_name               | country | total_quantity | rank 
 --------------+-----------------------------------------+---------+----------------+------
- S18_3232     | 1992 Ferrari 360 Spider red             | USA     |            491 |    3
+ S18_3856     | 1941 Chevrolet Special Deluxe Cabriolet | Belgium |             95 |    1
+ S18_3140     | 1903 Ford Model A                       | Belgium |             73 |    2
+ S18_4522     | 1904 Buick Runabout                     | Belgium |             72 |    3
  S18_3232     | 1992 Ferrari 360 Spider red             | Spain   |            336 |    1
  S24_2840     | 1958 Chevy Corvette Limited Edition     | Spain   |            287 |    2
- S12_2823     | 2002 Suzuki XREO                        | USA     |            499 |    2
  S700_3505    | The Titanic                             | Spain   |            233 |    3
  S12_4473     | 1957 Chevy Pickup                       | USA     |            523 |    1
- S18_3140     | 1903 Ford Model A                       | Belgium |             73 |    2
- S18_3856     | 1941 Chevrolet Special Deluxe Cabriolet | Belgium |             95 |    1
- S18_4522     | 1904 Buick Runabout                     | Belgium |             72 |    3
+ S12_2823     | 2002 Suzuki XREO                        | USA     |            499 |    2
+ S18_3232     | 1992 Ferrari 360 Spider red             | USA     |            491 |    3
 (9 rows)
 
  day_of_week | total_per_day 
