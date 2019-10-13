@@ -1,3 +1,6 @@
+-- Connect to the star_db, needed for executing queries
+\c star_db
+
 -- Get the top 3 product types that have proven most profitable
 SELECT p.product_name,
   p.product_code,
