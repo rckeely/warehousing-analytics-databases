@@ -12,7 +12,7 @@ CREATE TABLE dim_dates(
   -- The others are built in, this could be added
   -- day_of_quarter INTEGER,
   day_of_month INTEGER,
-  day_of_week INTEGER
+  day_of_week VARCHAR
 );
 
 CREATE TABLE dim_employees(
