@@ -60,7 +60,8 @@ FROM (
     ORDER BY total_quantity DESC) AS s) AS s
 INNER JOIN dim_products AS p
   USING(product_code)
-WHERE s.rank <= 3;
+WHERE s.rank <= 3
+ORDER BY s.country, s.rank;
 
 -- This treats the three countries as a set. This may have been what you wanted
 -- SELECT DISTINCT(p.product_name),
@@ -149,5 +150,6 @@ INNER JOIN(
     GROUP BY f.order_number) AS s
   USING(order_number)
 ORDER BY order_total DESC
+-- As the rows are ordered in descending order, this picks only the top 10%
 LIMIT (SELECT ROUND(0.1 * COUNT(DISTINCT(order_number)), 0)
         FROM fact_order_items);
