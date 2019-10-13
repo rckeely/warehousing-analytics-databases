@@ -182,7 +182,10 @@ def transform_date_df(date_df):
     date_df['week'] = pd.to_datetime(date_df.iso_date).dt.week
     date_df['day_of_year'] = pd.to_datetime(date_df.iso_date).dt.dayofyear
     date_df['day_of_month'] = pd.to_datetime(date_df.iso_date).dt.day
-    date_df['day_of_week'] = pd.to_datetime(date_df.iso_date).dt.dayofweek
+    dayOfWeek={0:'Monday', 1:'Tuesday', 2:'Wednesday', 3:'Thursday',
+        4:'Friday', 5:'Saturday', 6:'Sunday'}
+    date_df['day_of_week'] = (pd.to_datetime(date_df.iso_date)
+        .dt.dayofweek.map(dayOfWeek))
     # This converts the date to a string in ISO format, YYYY-MM-DD
     # and converting the NaT datetime to 0000-00-00 to avoid having
     # to drop those columns
@@ -239,7 +242,6 @@ if __name__ == "__main__":
                     ('fact_order_items', join_query)])
     for key in query_dict.keys():
         build_dim_table(query_dict[key], conn_op_db, conn_star_db, key)
-
     print("ETL complete.")
 
     conn_op_db.disconnect(True)
