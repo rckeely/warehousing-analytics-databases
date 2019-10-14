@@ -34,8 +34,8 @@ You are now connected to database "star_db" as user "postgres".
   city  | avg_profit_margin | quarter 
 --------+-------------------+---------
  NYC    |              0.43 |       1
- Tokyo  |              0.41 |       4
  London |              0.41 |       3
+ Tokyo  |              0.41 |       4
 (3 rows)
 
  last_name | first_name | total_revenue 
@@ -46,7 +46,16 @@ You are now connected to database "star_db" as user "postgres".
  Bott      | Larry      |   $731,995.00
  Jones     | Barry      |   $705,052.00
  Vanauf    | George     |   $669,588.00
-(6 rows)
+ Marsh     | Peter      |   $584,622.00
+ Bondur    | Loui       |   $569,661.00
+ Fixter    | Andy       |   $562,458.00
+ Patterson | Steve      |   $505,884.00
+ Tseng     | Foon Yue   |   $488,419.00
+ Nishi     | Mami       |   $456,903.00
+ Gerard    | Martin     |   $387,599.00
+ Firrelli  | Julie      |   $386,723.00
+ Thompson  | Leslie     |   $347,408.00
+(15 rows)
 
  order_total | employee_number | order_number 
 -------------+-----------------+--------------
