@@ -111,12 +111,6 @@ LIMIT 3;
 
 -- List the employees who have sold more goods (in $ amount) than the average
 -- employee.
-
--- NOTE:
--- For the next query, I do not think this is necessarily the simplest way to
--- perform the query, but I can't seem to find a simpler way to do them. I think
--- that maybe a different schema based on employee sales would improve things,
--- but then it would be awkward to do the previous four queries.
 SELECT e.last_name,
   e.first_name,
   s.total_revenue
@@ -126,13 +120,7 @@ INNER JOIN (
       SUM(revenue) AS total_revenue
     FROM fact_order_items
     GROUP BY employee_number
-    HAVING SUM(revenue::NUMERIC) > (
-      SELECT AVG(s.total_revenue::NUMERIC)
-      FROM (
-          SELECT employee_number,
-            SUM(revenue) AS total_revenue
-          FROM fact_order_items
-          GROUP BY employee_number) AS s)
+    HAVING SUM(revenue::NUMERIC) > SUM(revenue::NUMERIC) / COUNT(*)
     ORDER BY SUM(revenue) DESC) AS s
   USING(employee_number)
 ORDER BY s.total_revenue DESC;
