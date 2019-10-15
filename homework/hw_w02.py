@@ -101,35 +101,8 @@ select_dates_query = """
 ###-###-###-###-###-###-###-###-###-###-###-###-###-###-###-###-###-###-###-
 # Module functions
 ###-###-###-###-###-###-###-###-###-###-###-###-###-###-###-###-###-###-###-
-def create_df(query, conn):
-    column_names, returned_rows = conn.select_query(query)
-    df = pd.DataFrame(returned_rows)
-    df.columns = column_names
-    return df
 
-def fix_measures_dt(measures_df):
-    for key in ["order_date",
-                "required_date",
-                "shipped_date",]:
-        # Similar to the correction done on the dates, convert the dates
-        # to strings for use as keys, setting NaT to 0000-00-00
-        measures_df[key] = (pd.to_datetime(measures_df[key])
-                           .apply(lambda x: x.strftime('%Y-%m-%d')
-                                  if not pd.isnull(x) else '0000-00-00'))
-
-def create_derived_measures(measures_df):
-    # Transforms
-    measures_df['revenue'] = (measures_df['quantity_ordered'] *
-            measures_df['price_each'])
-    measures_df['costs'] = (measures_df['quantity_ordered'] *
-            measures_df['buy_price'])
-    measures_df['profits'] = (measures_df['revenue'] -
-            measures_df['costs'])
-    measures_df['profit_per_item'] = (measures_df['profits'] /
-            measures_df['quantity_ordered'])
-    measures_df['profit_margin'] = (measures_df['profits'] /
-            measures_df['revenue'])
-
+# Functions for handling insert queries, recylced from last week
 def load_table(conn, table_name, frame):
     """Load a dataframe into a specified table"""
     # Build table
@@ -161,6 +134,31 @@ def build_insert_query(row, table):
     query = f"INSERT INTO {table} ({query_columns[:-2]}) VALUES ({values[:-2]})"
     return query, variable_list
 
+# Functions for handling ETL operations
+def etl_table(query, conn_op_db, conn_star_db, table):
+    # The date dim has more specific changes, so it is built with a
+    # separate function
+    if table == 'dim_dates':
+        etl_date_dim(query, conn_op_db, conn_star_db)
+    # Similarly, the measures table has specific effects
+    elif table == 'fact_order_items':
+        etl_measures_table(query, conn_op_db, conn_star_db)
+    else:
+        df = create_df(query, conn_op_db)
+        load_table(conn_star_db, table, df)
+
+def create_df(query, conn):
+    column_names, returned_rows = conn.select_query(query)
+    df = pd.DataFrame(returned_rows)
+    df.columns = column_names
+    return df
+
+def etl_date_dim(select_dates_query, conn_op_db,
+                   conn_star_db, table_name = 'dim_dates'):
+    date_df = create_date_df(select_dates_query, conn_op_db)
+    date_df = transform_date_df(date_df)
+    load_table(conn_star_db, table_name, date_df)
+
 def create_date_df(select_dates_query, conn_op_db):
     raw_date_df = create_df(select_dates_query, conn_op_db)
     # Include all possible dates initially
@@ -171,6 +169,8 @@ def create_date_df(select_dates_query, conn_op_db):
     date_df = pd.DataFrame(date_series.drop_duplicates())
     # Rename the sole column to the key name
     date_df.columns = ['iso_date']
+    # Reset the index, dropping the old index to fix effects of concatenation
+    date_df.reset_index(inplace=True, drop=True)
     return date_df
 
 def transform_date_df(date_df):
@@ -194,27 +194,7 @@ def transform_date_df(date_df):
                                       if not pd.isnull(x) else '0000-00-00'))
     # Fix all of the other NaTs to None
     date_df = date_df.where(pd.notnull(date_df), None)
-    # Reset the index, dropping the old index to fix effects of concatenation
-    date_df.reset_index(inplace=True, drop=True)
     return date_df
-
-def etl_date_dim(select_dates_query, conn_op_db,
-                   conn_star_db, table_name = 'dim_dates'):
-    date_df = create_date_df(select_dates_query, conn_op_db)
-    date_df = transform_date_df(date_df)
-    load_table(conn_star_db, table_name, date_df)
-
-def etl_table(query, conn_op_db, conn_star_db, table):
-    # The date dim has more specific changes, so it is built with a
-    # separate function
-    if table == 'dim_dates':
-        etl_date_dim(query, conn_op_db, conn_star_db)
-    # Similarly, the measures table has specific effects
-    elif table == 'fact_order_items':
-        etl_measures_table(query, conn_op_db, conn_star_db)
-    else:
-        df = create_df(query, conn_op_db)
-        load_table(conn_star_db, table, df)
 
 def etl_measures_table(join_query, conn_op_db, conn_star_db,
         table='fact_order_items'):
@@ -224,6 +204,29 @@ def etl_measures_table(join_query, conn_op_db, conn_star_db,
     # Create derived measures for use in summaries
     create_derived_measures(measures_df)
     load_table(conn_star_db, table, measures_df)
+
+def fix_measures_dt(measures_df):
+    for key in ["order_date",
+                "required_date",
+                "shipped_date",]:
+        # Similar to the correction done on the dates, convert the dates
+        # to strings for use as keys, setting NaT to 0000-00-00
+        measures_df[key] = (pd.to_datetime(measures_df[key])
+                           .apply(lambda x: x.strftime('%Y-%m-%d')
+                                  if not pd.isnull(x) else '0000-00-00'))
+
+def create_derived_measures(measures_df):
+    # Transforms
+    measures_df['revenue'] = (measures_df['quantity_ordered'] *
+            measures_df['price_each'])
+    measures_df['costs'] = (measures_df['quantity_ordered'] *
+            measures_df['buy_price'])
+    measures_df['profits'] = (measures_df['revenue'] -
+            measures_df['costs'])
+    measures_df['profit_per_item'] = (measures_df['profits'] /
+            measures_df['quantity_ordered'])
+    measures_df['profit_margin'] = (measures_df['profits'] /
+            measures_df['revenue'])
 
 ###-###-###-###-###-###-###-###-###-###-###-###-###-###-###-###-###-###-###-
 # Run script
