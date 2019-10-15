@@ -198,25 +198,25 @@ def transform_date_df(date_df):
     date_df.reset_index(inplace=True, drop=True)
     return date_df
 
-def build_date_dim(select_dates_query, conn_op_db,
+def etl_date_dim(select_dates_query, conn_op_db,
                    conn_star_db, table_name = 'dim_dates'):
     date_df = create_date_df(select_dates_query, conn_op_db)
     date_df = transform_date_df(date_df)
     load_table(conn_star_db, table_name, date_df)
 
-def build_dim_table(query, conn_op_db, conn_star_db, table):
+def etl_table(query, conn_op_db, conn_star_db, table):
     # The date dim has more specific changes, so it is built with a
     # separate function
     if table == 'dim_dates':
-        build_date_dim(query, conn_op_db, conn_star_db)
+        etl_date_dim(query, conn_op_db, conn_star_db)
     # Similarly, the measures table has specific effects
     elif table == 'fact_order_items':
-        build_measures_table(query, conn_op_db, conn_star_db)
+        etl_measures_table(query, conn_op_db, conn_star_db)
     else:
         df = create_df(query, conn_op_db)
         load_table(conn_star_db, table, df)
 
-def build_measures_table(join_query, conn_op_db, conn_star_db,
+def etl_measures_table(join_query, conn_op_db, conn_star_db,
         table='fact_order_items'):
     measures_df = create_df(join_query, conn_op_db)
     # Convert the datetimes to strings for easier use as keys
@@ -241,7 +241,9 @@ if __name__ == "__main__":
                     ('dim_dates', select_dates_query),
                     ('fact_order_items', join_query)])
     for key in query_dict.keys():
-        build_dim_table(query_dict[key], conn_op_db, conn_star_db, key)
+        print(f"Starting ETL of {key}... ", end="")
+        etl_table(query_dict[key], conn_op_db, conn_star_db, key)
+        print(f"complete")
     print("ETL complete.")
 
     conn_op_db.disconnect(True)
