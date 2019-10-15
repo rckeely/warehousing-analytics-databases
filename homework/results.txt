@@ -34,8 +34,8 @@ You are now connected to database "star_db" as user "postgres".
   city  | avg_profit_margin | quarter 
 --------+-------------------+---------
  NYC    |              0.43 |       1
- London |              0.41 |       3
  Tokyo  |              0.41 |       4
+ London |              0.41 |       3
 (3 rows)
 
  last_name | first_name | total_revenue 
