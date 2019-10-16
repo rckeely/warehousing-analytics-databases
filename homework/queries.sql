@@ -31,13 +31,6 @@ INNER JOIN (
 
 -- Get the top 3 products by items sold per country of customer for: USA,
 -- Spain, Belgium
-
--- NOTE:
--- I wasn't sure exactly what you meant by this, so I got the top 3 by quantity
--- for each of the 3 countries in a single table. To do this I needed to use two
--- nested subqueries, which I don't think is the best way to do it, but it
--- seemed to be the only way to get the rank column in a way that was usable
--- for a WHERE clause.
 SELECT s.product_code,
       p.product_name,
       s.country,
@@ -62,28 +55,6 @@ INNER JOIN dim_products AS p
   USING(product_code)
 WHERE s.rank <= 3
 ORDER BY s.country, s.rank;
-
--- This treats the three countries as a set. This may have been what you wanted
--- SELECT DISTINCT(p.product_name),
---   p.product_code,
---   s.total_quantity,
---   s.country
--- FROM fact_order_items AS f
--- INNER JOIN dim_products AS p
---   USING(product_code)
--- INNER JOIN (
---     SELECT f.product_code,
---       SUM(f.quantity_ordered) AS total_quantity,
---       c.country
---     FROM fact_order_items AS f
---     INNER JOIN dim_customers AS c
---       USING(customer_number)
---     GROUP BY (f.product_code, c.country)
---     ORDER BY total_quantity DESC) AS s
---   USING(product_code)
--- WHERE s.country IN ('USA', 'Spain', 'Belgium')
--- ORDER BY total_quantity DESC
--- LIMIT 3;
 
 -- Get the most profitable day of the week
 SELECT d.day_of_week,
